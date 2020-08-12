@@ -9,17 +9,15 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/lucas-clemente/quic-go/internal/protocol"
 	"github.com/lucas-clemente/quic-go/internal/qerr"
 	"github.com/lucas-clemente/quic-go/internal/utils"
 	"github.com/lucas-clemente/quic-go/logging"
-
-	"github.com/lucas-clemente/quic-go/internal/protocol"
-	"github.com/marten-seemann/qtls"
 )
 
 // By setting this environment variable, the key update interval can be adjusted.
 // This is not needed in production, but useful for integration and interop testing.
-// Note that no mattter what value is set, a key update is only initiated once it is
+// Note that no matter what value is set, a key update is only initiated once it is
 // permitted (i.e. once an ACK for a packet sent at the current key phase has been received).
 const keyUpdateEnv = "QUIC_GO_KEY_UPDATE_INTERVAL"
 
@@ -43,7 +41,7 @@ func setKeyUpdateInterval() {
 }
 
 type updatableAEAD struct {
-	suite *qtls.CipherSuiteTLS13
+	suite *qtlsCipherSuiteTLS13
 
 	keyPhase          protocol.KeyPhase
 	largestAcked      protocol.PacketNumber
@@ -119,7 +117,7 @@ func (a *updatableAEAD) getNextTrafficSecret(hash crypto.Hash, ts []byte) []byte
 
 // For the client, this function is called before SetWriteKey.
 // For the server, this function is called after SetWriteKey.
-func (a *updatableAEAD) SetReadKey(suite *qtls.CipherSuiteTLS13, trafficSecret []byte) {
+func (a *updatableAEAD) SetReadKey(suite *qtlsCipherSuiteTLS13, trafficSecret []byte) {
 	a.rcvAEAD = createAEAD(suite, trafficSecret)
 	a.headerDecrypter = newHeaderProtector(suite, trafficSecret, false)
 	if a.suite == nil {
@@ -134,7 +132,7 @@ func (a *updatableAEAD) SetReadKey(suite *qtls.CipherSuiteTLS13, trafficSecret [
 
 // For the client, this function is called after SetReadKey.
 // For the server, this function is called before SetWriteKey.
-func (a *updatableAEAD) SetWriteKey(suite *qtls.CipherSuiteTLS13, trafficSecret []byte) {
+func (a *updatableAEAD) SetWriteKey(suite *qtlsCipherSuiteTLS13, trafficSecret []byte) {
 	a.sendAEAD = createAEAD(suite, trafficSecret)
 	a.headerEncrypter = newHeaderProtector(suite, trafficSecret, false)
 	if a.suite == nil {

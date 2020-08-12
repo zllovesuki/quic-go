@@ -2,7 +2,6 @@ package handshake
 
 import (
 	"github.com/lucas-clemente/quic-go/internal/protocol"
-	"github.com/marten-seemann/qtls"
 )
 
 const quicTLSExtensionType = 0xffa5
@@ -25,18 +24,18 @@ func newExtensionHandler(params []byte, pers protocol.Perspective) tlsExtensionH
 	}
 }
 
-func (h *extensionHandler) GetExtensions(msgType uint8) []qtls.Extension {
+func (h *extensionHandler) GetExtensions(msgType uint8) []qtlsExtension {
 	if (h.perspective == protocol.PerspectiveClient && messageType(msgType) != typeClientHello) ||
 		(h.perspective == protocol.PerspectiveServer && messageType(msgType) != typeEncryptedExtensions) {
 		return nil
 	}
-	return []qtls.Extension{{
+	return []qtlsExtension{{
 		Type: quicTLSExtensionType,
 		Data: h.ourParams,
 	}}
 }
 
-func (h *extensionHandler) ReceivedExtensions(msgType uint8, exts []qtls.Extension) {
+func (h *extensionHandler) ReceivedExtensions(msgType uint8, exts []qtlsExtension) {
 	if (h.perspective == protocol.PerspectiveClient && messageType(msgType) != typeEncryptedExtensions) ||
 		(h.perspective == protocol.PerspectiveServer && messageType(msgType) != typeClientHello) {
 		return

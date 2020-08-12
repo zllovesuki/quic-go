@@ -1,6 +1,8 @@
 package handshake
 
 import (
+	"crypto"
+	"crypto/cipher"
 	"crypto/tls"
 	"errors"
 	"net"
@@ -12,6 +14,20 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
+
+type mockCipherSuiteTLS13 struct {
+	ID     uint16
+	KeyLen int
+	AEAD   func(key, fixedNonce []byte) cipher.AEAD
+	Hash   crypto.Hash
+}
+
+//go:linkname cipherSuiteTLS13ByID github.com/marten-seemann/qtls.cipherSuiteTLS13ByID
+func cipherSuiteTLS13ByID(id uint16) *mockCipherSuiteTLS13
+
+func qtlsHkdfExpandLabel(hash crypto.Hash, secret, hashValue []byte, label string, L int) []byte {
+	return qtls.HkdfExpandLabel(hash, secret, hashValue, label, L)
+}
 
 type mockExtensionHandler struct {
 	get, received bool

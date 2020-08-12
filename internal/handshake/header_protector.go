@@ -3,12 +3,11 @@ package handshake
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/tls"
 	"encoding/binary"
 	"fmt"
 
 	"golang.org/x/crypto/chacha20"
-
-	"github.com/marten-seemann/qtls"
 )
 
 type headerProtector interface {
@@ -16,11 +15,11 @@ type headerProtector interface {
 	DecryptHeader(sample []byte, firstByte *byte, hdrBytes []byte)
 }
 
-func newHeaderProtector(suite *qtls.CipherSuiteTLS13, trafficSecret []byte, isLongHeader bool) headerProtector {
+func newHeaderProtector(suite *qtlsCipherSuiteTLS13, trafficSecret []byte, isLongHeader bool) headerProtector {
 	switch suite.ID {
-	case qtls.TLS_AES_128_GCM_SHA256, qtls.TLS_AES_256_GCM_SHA384:
+	case tls.TLS_AES_128_GCM_SHA256, tls.TLS_AES_256_GCM_SHA384:
 		return newAESHeaderProtector(suite, trafficSecret, isLongHeader)
-	case qtls.TLS_CHACHA20_POLY1305_SHA256:
+	case tls.TLS_CHACHA20_POLY1305_SHA256:
 		return newChaChaHeaderProtector(suite, trafficSecret, isLongHeader)
 	default:
 		panic(fmt.Sprintf("Invalid cipher suite id: %d", suite.ID))
@@ -36,7 +35,7 @@ type aesHeaderProtector struct {
 
 var _ headerProtector = &aesHeaderProtector{}
 
-func newAESHeaderProtector(suite *qtls.CipherSuiteTLS13, trafficSecret []byte, isLongHeader bool) headerProtector {
+func newAESHeaderProtector(suite *qtlsCipherSuiteTLS13, trafficSecret []byte, isLongHeader bool) headerProtector {
 	hpKey := hkdfExpandLabel(suite.Hash, trafficSecret, []byte{}, "quic hp", suite.KeyLen)
 	block, err := aes.NewCipher(hpKey)
 	if err != nil {
@@ -81,7 +80,7 @@ type chachaHeaderProtector struct {
 
 var _ headerProtector = &chachaHeaderProtector{}
 
-func newChaChaHeaderProtector(suite *qtls.CipherSuiteTLS13, trafficSecret []byte, isLongHeader bool) headerProtector {
+func newChaChaHeaderProtector(suite *qtlsCipherSuiteTLS13, trafficSecret []byte, isLongHeader bool) headerProtector {
 	hpKey := hkdfExpandLabel(suite.Hash, trafficSecret, []byte{}, "quic hp", suite.KeyLen)
 
 	p := &chachaHeaderProtector{

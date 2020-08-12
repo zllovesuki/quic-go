@@ -5,8 +5,6 @@ import (
 	"crypto/rand"
 	mrand "math/rand"
 
-	"github.com/marten-seemann/qtls"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -24,7 +22,7 @@ var _ = Describe("Initial AEAD using AES-GCM", func() {
 			length := mrand.Intn(100)
 
 			expanded := hkdfExpandLabel(crypto.SHA256, secret, context, label, length)
-			expandedQTLS := qtls.HkdfExpandLabel(crypto.SHA256, secret, context, label, length)
+			expandedQTLS := qtlsHkdfExpandLabel(crypto.SHA256, secret, context, label, length)
 			Expect(expanded).To(Equal(expandedQTLS))
 		}
 	})

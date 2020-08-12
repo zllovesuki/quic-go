@@ -2,7 +2,6 @@ package handshake
 
 import (
 	"github.com/lucas-clemente/quic-go/internal/protocol"
-	"github.com/marten-seemann/qtls"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -42,7 +41,7 @@ var _ = Describe("TLS Extension Handler, for the server", func() {
 		})
 
 		Context("receiving", func() {
-			var chExts []qtls.Extension
+			var chExts []qtlsExtension
 
 			BeforeEach(func() {
 				chExts = handlerClient.GetExtensions(uint8(typeClientHello))
@@ -74,7 +73,7 @@ var _ = Describe("TLS Extension Handler, for the server", func() {
 			It("ignores extensions with different code points", func() {
 				go func() {
 					defer GinkgoRecover()
-					exts := []qtls.Extension{{Type: 0x1337, Data: []byte("invalid")}}
+					exts := []qtlsExtension{{Type: 0x1337, Data: []byte("invalid")}}
 					handlerServer.ReceivedExtensions(uint8(typeClientHello), exts)
 				}()
 
@@ -114,7 +113,7 @@ var _ = Describe("TLS Extension Handler, for the server", func() {
 		})
 
 		Context("receiving", func() {
-			var chExts []qtls.Extension
+			var chExts []qtlsExtension
 
 			BeforeEach(func() {
 				chExts = handlerServer.GetExtensions(uint8(typeEncryptedExtensions))
@@ -146,7 +145,7 @@ var _ = Describe("TLS Extension Handler, for the server", func() {
 			It("ignores extensions with different code points", func() {
 				go func() {
 					defer GinkgoRecover()
-					exts := []qtls.Extension{{Type: 0x1337, Data: []byte("invalid")}}
+					exts := []qtlsExtension{{Type: 0x1337, Data: []byte("invalid")}}
 					handlerClient.ReceivedExtensions(uint8(typeEncryptedExtensions), exts)
 				}()
 

@@ -7,7 +7,6 @@ import (
 
 	"github.com/lucas-clemente/quic-go/internal/protocol"
 	"github.com/lucas-clemente/quic-go/internal/wire"
-	"github.com/marten-seemann/qtls"
 )
 
 var (
@@ -21,9 +20,6 @@ var (
 	// ErrDecryptionFailed is returned when the AEAD fails to open the packet.
 	ErrDecryptionFailed = errors.New("decryption failed")
 )
-
-// ConnectionState contains information about the state of the connection.
-type ConnectionState = qtls.ConnectionState
 
 type headerDecryptor interface {
 	DecryptHeader(sample []byte, firstByte *byte, pnBytes []byte)
@@ -52,13 +48,6 @@ type LongHeaderSealer interface {
 type ShortHeaderSealer interface {
 	LongHeaderSealer
 	KeyPhase() protocol.KeyPhaseBit
-}
-
-// A tlsExtensionHandler sends and received the QUIC TLS extension.
-type tlsExtensionHandler interface {
-	GetExtensions(msgType uint8) []qtls.Extension
-	ReceivedExtensions(msgType uint8, exts []qtls.Extension)
-	TransportParameters() <-chan []byte
 }
 
 type handshakeRunner interface {

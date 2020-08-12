@@ -1,6 +1,8 @@
 package handshake
 
 import (
+	"crypto"
+	"crypto/cipher"
 	"crypto/tls"
 	"net"
 	"time"
@@ -18,6 +20,39 @@ func init() {
 	if !structsEqual(&qtls.ClientHelloInfo{}, &qtlsClientHelloInfo{}) {
 		panic("qtlsClientHelloInfo not compatible with qtls.ClientHelloInfo")
 	}
+}
+
+// ConnectionState contains information about the state of the connection.
+type ConnectionState = qtls.ConnectionState
+
+type qtlsExtension = qtls.Extension
+
+type qtlsCipherSuiteTLS13 = qtls.CipherSuiteTLS13
+
+func cipherSuiteName(id uint16) string {
+	return qtls.CipherSuiteName(id)
+}
+
+var initialSuite = &qtlsCipherSuiteTLS13{
+	ID:     qtls.TLS_AES_128_GCM_SHA256,
+	KeyLen: 16,
+	AEAD:   qtls.AEADAESGCMTLS13,
+	Hash:   crypto.SHA256,
+}
+
+// A tlsExtensionHandler sends and received the QUIC TLS extension.
+type tlsExtensionHandler interface {
+	GetExtensions(msgType uint8) []qtlsExtension
+	ReceivedExtensions(msgType uint8, exts []qtlsExtension)
+	TransportParameters() <-chan []byte
+}
+
+func hkdfExtract(hash crypto.Hash, newSecret, currentSecret []byte) []byte {
+	return qtls.HkdfExtract(hash, newSecret, currentSecret)
+}
+
+func qtlsAEADAESGCMTLS13(key, fixedNonce []byte) cipher.AEAD {
+	return qtls.AEADAESGCMTLS13(key, fixedNonce)
 }
 
 type conn struct {

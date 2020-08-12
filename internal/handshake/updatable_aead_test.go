@@ -2,13 +2,13 @@ package handshake
 
 import (
 	"crypto/rand"
+	"crypto/tls"
 	"fmt"
 	"os"
 	"time"
 
 	"github.com/lucas-clemente/quic-go/internal/protocol"
 	"github.com/lucas-clemente/quic-go/internal/utils"
-	"github.com/marten-seemann/qtls"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -19,7 +19,7 @@ var _ = Describe("Updatable AEAD", func() {
 		secret := splitHexString("9ac312a7f877468ebe69422748ad00a1 5443f18203a07d6060f688f30f21632b")
 		aead := newUpdatableAEAD(&utils.RTTStats{}, nil, nil)
 		chacha := cipherSuites[2]
-		Expect(chacha.ID).To(Equal(qtls.TLS_CHACHA20_POLY1305_SHA256))
+		Expect(chacha.ID).To(Equal(tls.TLS_CHACHA20_POLY1305_SHA256))
 		aead.SetWriteKey(chacha, secret)
 		header := splitHexString("4200bff4")
 		const pnOffset = 1
@@ -35,7 +35,7 @@ var _ = Describe("Updatable AEAD", func() {
 	for i := range cipherSuites {
 		cs := cipherSuites[i]
 
-		Context(fmt.Sprintf("using %s", qtls.CipherSuiteName(cs.ID)), func() {
+		Context(fmt.Sprintf("using %s", cipherSuiteName(cs.ID)), func() {
 			getPeers := func(rttStats *utils.RTTStats) (client, server *updatableAEAD) {
 				trafficSecret1 := make([]byte, 16)
 				trafficSecret2 := make([]byte, 16)
