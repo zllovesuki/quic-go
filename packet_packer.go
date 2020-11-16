@@ -424,6 +424,7 @@ func (p *packetPacker) PackCoalescedPacket() (*coalescedPacket, error) {
 		padding := p.paddingLen(initialPayload.frames, size)
 		cont, err := p.appendPacket(buffer, initialHdr, initialPayload, padding, protocol.EncryptionInitial, initialSealer)
 		if err != nil {
+			fmt.Printf("error adding initial. initial: %t, handshake: %t, appData: %t\n", initialPayload != nil, handshakePayload != nil, appDataPayload != nil)
 			return nil, err
 		}
 		packet.packets = append(packet.packets, cont)
@@ -431,6 +432,7 @@ func (p *packetPacker) PackCoalescedPacket() (*coalescedPacket, error) {
 	if handshakePayload != nil {
 		cont, err := p.appendPacket(buffer, handshakeHdr, handshakePayload, 0, protocol.EncryptionHandshake, handshakeSealer)
 		if err != nil {
+			fmt.Printf("error adding initial. initial: %t, handshake: %t, appData: %t\n", initialPayload != nil, handshakePayload != nil, appDataPayload != nil)
 			return nil, err
 		}
 		packet.packets = append(packet.packets, cont)
@@ -438,6 +440,7 @@ func (p *packetPacker) PackCoalescedPacket() (*coalescedPacket, error) {
 	if appDataPayload != nil {
 		cont, err := p.appendPacket(buffer, appDataHdr, appDataPayload, 0, appDataEncLevel, appDataSealer)
 		if err != nil {
+			fmt.Printf("error adding initial. initial: %t, handshake: %t, appData: %t\n", initialPayload != nil, handshakePayload != nil, appDataPayload != nil)
 			return nil, err
 		}
 		packet.packets = append(packet.packets, cont)
@@ -660,7 +663,12 @@ func (p *packetPacker) MaybePackProbePacket(encLevel protocol.EncryptionLevel) (
 	buffer := getPacketBuffer()
 	cont, err := p.appendPacket(buffer, hdr, payload, padding, encLevel, sealer)
 	if err != nil {
-		return nil, err
+		fmt.Printf("Encryption level: %s, hdr: %#v, padding: %d\n", encLevel, hdr, padding)
+		fmt.Printf("Payload ACK: %#v\n", payload.ack)
+		for _, frame := range payload.frames {
+			fmt.Printf("Payload frame: %#v\n", frame)
+		}
+		return nil, fmt.Errorf("packing probe packet failed: %w", err)
 	}
 	return &packedPacket{
 		buffer:         buffer,
@@ -751,7 +759,7 @@ func (p *packetPacker) writeSinglePacket(
 	}
 	contents, err := p.appendPacket(buffer, hdr, payload, paddingLen, encLevel, sealer)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("writing single packet failed: %w", err)
 	}
 	return &packedPacket{
 		buffer:         buffer,
