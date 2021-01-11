@@ -89,6 +89,10 @@ const DefaultMaxAckDelay = 25 * time.Millisecond
 // MaxMaxAckDelay is the maximum max_ack_delay
 const MaxMaxAckDelay = (1<<14 - 1) * time.Millisecond
 
+// MaxMinAckDelay is the maximum value of the min_ack_delay transport parameter.
+// See https://tools.ietf.org/html/draft-iyengar-quic-delayed-ack-02.
+const MaxMinAckDelay = (1<<24 - 1) * time.Microsecond
+
 // MaxConnIDLen is the maximum length of the connection ID
 const MaxConnIDLen = 20
 
