@@ -10,19 +10,23 @@ import (
 	"github.com/lucas-clemente/quic-go/internal/qerr"
 )
 
+var errUnknownFrame = errors.New("unknown frame type")
+
 type frameParser struct {
 	ackDelayExponent uint8
 
-	supportsDatagrams bool
+	supportsDatagrams   bool
+	supportAckFrequency bool
 
 	version protocol.VersionNumber
 }
 
 // NewFrameParser creates a new frame parser.
-func NewFrameParser(supportsDatagrams bool, v protocol.VersionNumber) FrameParser {
+func NewFrameParser(supportsDatagrams, supportsAckFrequency bool, v protocol.VersionNumber) FrameParser {
 	return &frameParser{
-		supportsDatagrams: supportsDatagrams,
-		version:           v,
+		supportsDatagrams:   supportsDatagrams,
+		supportAckFrequency: supportsAckFrequency,
+		version:             v,
 	}
 }
 
@@ -93,13 +97,19 @@ func (p *frameParser) parseFrame(r *bytes.Reader, typeByte byte, encLevel protoc
 		case 0x1e:
 			frame, err = parseHandshakeDoneFrame(r, p.version)
 		case 0x30, 0x31:
-			if p.supportsDatagrams {
-				frame, err = parseDatagramFrame(r, p.version)
+			if !p.supportsDatagrams {
+				err = errUnknownFrame
 				break
 			}
-			fallthrough
+			frame, err = parseDatagramFrame(r, p.version)
+		case 0xaf:
+			if !p.supportAckFrequency {
+				err = errUnknownFrame
+				break
+			}
+			frame, err = parseAckFrequencyFrame(r, p.version)
 		default:
-			err = errors.New("unknown frame type")
+			err = errUnknownFrame
 		}
 	}
 	if err != nil {
