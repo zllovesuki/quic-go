@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"sync/atomic"
 	"time"
 
 	quic "github.com/lucas-clemente/quic-go"
@@ -163,49 +164,60 @@ var _ = Describe("Stream deadline tests", func() {
 			Eventually(done).Should(BeClosed())
 		})
 
-		It("completes a transfer when the deadline is set concurrently", func() {
-			const timeout = 20 * time.Millisecond
-			readDone := make(chan struct{})
-			go func() {
-				defer GinkgoRecover()
-				data, err := ioutil.ReadAll(serverStr)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(data).To(Equal(PRDataLong))
-				close(readDone)
-			}()
-
-			clientStr.SetWriteDeadline(time.Now().Add(timeout))
-			deadlineDone := make(chan struct{})
-			go func() {
-				defer close(deadlineDone)
-				for {
-					select {
-					case <-readDone:
-						return
-					default:
-						time.Sleep(timeout)
-					}
-					clientStr.SetWriteDeadline(time.Now().Add(timeout))
-				}
-			}()
-
-			var bytesWritten int
-			var timeoutCounter int
-			clientStr.SetWriteDeadline(time.Now().Add(timeout))
-			for bytesWritten < len(PRDataLong) {
-				n, err := clientStr.Write(PRDataLong[bytesWritten:])
-				if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
-					timeoutCounter++
-				} else {
+		for i := 0; i < 100; i++ {
+			It("completes a transfer when the deadline is set concurrently", func() {
+				start := time.Now()
+				const timeout = 20 * time.Millisecond
+				readDone := make(chan struct{})
+				go func() {
+					defer GinkgoRecover()
+					data, err := ioutil.ReadAll(serverStr)
 					Expect(err).ToNot(HaveOccurred())
+					Expect(data).To(Equal(PRDataLong))
+					close(readDone)
+				}()
+
+				d := time.Now().Add(timeout)
+				clientStr.SetWriteDeadline(d)
+				// fmt.Fprintf(GinkgoWriter, "%s: set first deadline to %d\n", time.Since(start), d.Sub(start))
+				deadlineDone := make(chan struct{})
+				var deadlineCounter int32
+				go func() {
+					defer close(deadlineDone)
+					for {
+						select {
+						case <-readDone:
+							return
+						default:
+							time.Sleep(timeout)
+						}
+						d := time.Now().Add(timeout)
+						// fmt.Fprintf(GinkgoWriter, "%s: setting deadline to %s\n", time.Since(start), d.Sub(start))
+						atomic.AddInt32(&deadlineCounter, 1)
+						clientStr.SetWriteDeadline(d)
+					}
+				}()
+
+				var bytesWritten int
+				var timeoutCounter int
+				clientStr.SetWriteDeadline(time.Now().Add(timeout))
+				for bytesWritten < len(PRDataLong) {
+					n, err := clientStr.Write(PRDataLong[bytesWritten:])
+					if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
+						timeoutCounter++
+					} else {
+						Expect(err).ToNot(HaveOccurred())
+					}
+					bytesWritten += n
+					// fmt.Fprintf(GinkgoWriter, "%s: Wrote %d bytes (total %d / %d)\n", time.Since(start), n, bytesWritten, len(PRDataLong))
 				}
-				bytesWritten += n
-			}
-			clientStr.Close()
-			// make sure the test actually worked an Read actually ran into the deadline a few times
-			Expect(timeoutCounter).To(BeNumerically(">=", 10))
-			Eventually(readDone).Should(BeClosed())
-			Eventually(deadlineDone).Should(BeClosed())
-		})
+				clientStr.Close()
+				// make sure the test actually worked an Read actually ran into the deadline a few times
+				fmt.Printf("completed %s after start. Set deadline %d times\n", time.Since(start), atomic.LoadInt32(&deadlineCounter))
+				Expect(timeoutCounter).To(BeNumerically(">=", 10))
+				Eventually(readDone).Should(BeClosed())
+				Eventually(deadlineDone).Should(BeClosed())
+			})
+		}
 	})
 })
