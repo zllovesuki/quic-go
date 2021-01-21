@@ -139,7 +139,9 @@ func (s *sendStream) Write(p []byte) (int, error) {
 			bytesWritten = len(p) - len(s.dataForWriting)
 			deadline = s.deadline
 			if !deadline.IsZero() {
-				if !time.Now().Before(deadline) {
+				d := time.Until(deadline)
+				fmt.Printf("%s: time until deadline (%s): %s\n", time.Now(), deadline, d)
+				if d < 0 {
 					s.dataForWriting = nil
 					return bytesWritten, errDeadline
 				}
@@ -168,7 +170,9 @@ func (s *sendStream) Write(p []byte) (int, error) {
 		} else {
 			select {
 			case <-s.writeChan:
+				fmt.Println(time.Now(), ": writeChan unblock")
 			case <-deadlineTimer.Chan():
+				fmt.Println(time.Now(), ": timer unblock")
 				deadlineTimer.SetRead()
 			}
 		}
@@ -207,6 +211,7 @@ func (s *sendStream) popStreamFrame(maxBytes protocol.ByteCount) (*ackhandler.Fr
 	if f == nil {
 		return nil, hasMoreData
 	}
+	fmt.Printf("%s popped frame: %d (len: %d)\n", time.Now(), f.Offset, f.DataLen())
 	return &ackhandler.Frame{Frame: f, OnLost: s.queueRetransmission, OnAcked: s.frameAcked}, hasMoreData
 }
 
@@ -242,6 +247,7 @@ func (s *sendStream) popNewOrRetransmittedStreamFrame(maxBytes protocol.ByteCoun
 
 	sendWindow := s.flowController.SendWindowSize()
 	if sendWindow == 0 {
+		fmt.Println(time.Now(), "no send window at offset", s.writeOffset)
 		if isBlocked, offset := s.flowController.IsNewlyBlocked(); isBlocked {
 			s.sender.queueControlFrame(&wire.StreamDataBlockedFrame{
 				StreamID:          s.streamID,
@@ -438,6 +444,7 @@ func (s *sendStream) cancelWriteImpl(errorCode protocol.ApplicationErrorCode, wr
 }
 
 func (s *sendStream) handleMaxStreamDataFrame(frame *wire.MaxStreamDataFrame) {
+	fmt.Println(time.Now(), "received MAX_STREAM_DATA", frame.MaximumStreamData)
 	s.mutex.Lock()
 	hasStreamData := s.dataForWriting != nil || s.nextFrame != nil
 	s.mutex.Unlock()

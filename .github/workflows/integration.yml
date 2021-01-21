@@ -21,7 +21,3 @@ jobs:
         run: go install
       - name: Run tests
         run: ginkgo -r -v -randomizeAllSpecs -randomizeSuites -trace integrationtests
-      - name: Run tests (32 bit)
-        env:
-          GOARCH: 386
-        run: ginkgo -r -v -randomizeAllSpecs -randomizeSuites -trace integrationtests
