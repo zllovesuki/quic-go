@@ -20,4 +20,9 @@ jobs:
       - name: Install dependencies
         run: go install
       - name: Run tests
-        run: ginkgo -r -v -randomizeAllSpecs -randomizeSuites -trace integrationtests
+        run: ginkgo -r -v -randomizeAllSpecs -randomizeSuites -failFast -trace integrationtests/self -- -qlog
+      - uses: actions/upload-artifact@v2
+        if: ${{ failure() }}
+        with:
+          name: qlog-{{ matrix.go }}
+          path: integrationtests/self/*.qlog

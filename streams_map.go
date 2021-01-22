@@ -10,6 +10,7 @@ import (
 	"github.com/lucas-clemente/quic-go/internal/protocol"
 	"github.com/lucas-clemente/quic-go/internal/qerr"
 	"github.com/lucas-clemente/quic-go/internal/wire"
+	"github.com/lucas-clemente/quic-go/logging"
 )
 
 type streamError struct {
@@ -63,6 +64,7 @@ func newStreamsMap(
 	maxIncomingBidiStreams uint64,
 	maxIncomingUniStreams uint64,
 	perspective protocol.Perspective,
+	tracer logging.ConnectionTracer,
 	version protocol.VersionNumber,
 ) streamManager {
 	m := &streamsMap{
@@ -73,14 +75,14 @@ func newStreamsMap(
 	m.outgoingBidiStreams = newOutgoingBidiStreamsMap(
 		func(num protocol.StreamNum) streamI {
 			id := num.StreamID(protocol.StreamTypeBidi, perspective)
-			return newStream(id, m.sender, m.newFlowController(id), version)
+			return newStream(id, m.sender, m.newFlowController(id), tracer, version)
 		},
 		sender.queueControlFrame,
 	)
 	m.incomingBidiStreams = newIncomingBidiStreamsMap(
 		func(num protocol.StreamNum) streamI {
 			id := num.StreamID(protocol.StreamTypeBidi, perspective.Opposite())
-			return newStream(id, m.sender, m.newFlowController(id), version)
+			return newStream(id, m.sender, m.newFlowController(id), tracer, version)
 		},
 		maxIncomingBidiStreams,
 		sender.queueControlFrame,
@@ -88,7 +90,7 @@ func newStreamsMap(
 	m.outgoingUniStreams = newOutgoingUniStreamsMap(
 		func(num protocol.StreamNum) sendStreamI {
 			id := num.StreamID(protocol.StreamTypeUni, perspective)
-			return newSendStream(id, m.sender, m.newFlowController(id), version)
+			return newSendStream(id, m.sender, m.newFlowController(id), tracer, version)
 		},
 		sender.queueControlFrame,
 	)

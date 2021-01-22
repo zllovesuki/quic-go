@@ -164,7 +164,7 @@ var _ = Describe("Stream deadline tests", func() {
 			Eventually(done).Should(BeClosed())
 		})
 
-		for i := 0; i < 100; i++ {
+		for i := 0; i < 250; i++ {
 			It("completes a transfer when the deadline is set concurrently", func() {
 				start := time.Now()
 				const timeout = 20 * time.Millisecond

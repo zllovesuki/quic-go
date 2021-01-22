@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/lucas-clemente/quic-go/logging"
+
 	"github.com/lucas-clemente/quic-go/internal/ackhandler"
 
 	"github.com/lucas-clemente/quic-go/internal/flowcontrol"
@@ -54,6 +56,8 @@ type sendStream struct {
 
 	flowController flowcontrol.StreamFlowController
 
+	tracer logging.ConnectionTracer
+
 	version protocol.VersionNumber
 }
 
@@ -66,6 +70,7 @@ func newSendStream(
 	streamID protocol.StreamID,
 	sender streamSender,
 	flowController flowcontrol.StreamFlowController,
+	tracer logging.ConnectionTracer,
 	version protocol.VersionNumber,
 ) *sendStream {
 	s := &sendStream{
@@ -73,6 +78,7 @@ func newSendStream(
 		sender:         sender,
 		flowController: flowController,
 		writeChan:      make(chan struct{}, 1),
+		tracer:         tracer,
 		version:        version,
 	}
 	s.ctx, s.ctxCancel = context.WithCancel(context.Background())
@@ -140,7 +146,8 @@ func (s *sendStream) Write(p []byte) (int, error) {
 			deadline = s.deadline
 			if !deadline.IsZero() {
 				d := time.Until(deadline)
-				fmt.Printf("%s: time until deadline (%s): %s\n", time.Now(), deadline, d)
+				s.tracer.Debug("time_until_deadline", fmt.Sprintf("(%s): %s", deadline, d))
+				// fmt.Printf("%s: time until deadline (%s): %s\n", time.Now(), deadline, d)
 				if d < 0 {
 					s.dataForWriting = nil
 					return bytesWritten, errDeadline
@@ -170,9 +177,11 @@ func (s *sendStream) Write(p []byte) (int, error) {
 		} else {
 			select {
 			case <-s.writeChan:
-				fmt.Println(time.Now(), ": writeChan unblock")
+				s.tracer.Debug("unblock", "writeChan")
+				// fmt.Println(time.Now(), ": writeChan unblock")
 			case <-deadlineTimer.Chan():
-				fmt.Println(time.Now(), ": timer unblock")
+				s.tracer.Debug("unblock", "timer")
+				// fmt.Println(time.Now(), ": timer unblock")
 				deadlineTimer.SetRead()
 			}
 		}
@@ -211,7 +220,7 @@ func (s *sendStream) popStreamFrame(maxBytes protocol.ByteCount) (*ackhandler.Fr
 	if f == nil {
 		return nil, hasMoreData
 	}
-	fmt.Printf("%s popped frame: %d (len: %d)\n", time.Now(), f.Offset, f.DataLen())
+	// fmt.Printf("%s popped frame: %d (len: %d)\n", time.Now(), f.Offset, f.DataLen())
 	return &ackhandler.Frame{Frame: f, OnLost: s.queueRetransmission, OnAcked: s.frameAcked}, hasMoreData
 }
 
@@ -247,7 +256,7 @@ func (s *sendStream) popNewOrRetransmittedStreamFrame(maxBytes protocol.ByteCoun
 
 	sendWindow := s.flowController.SendWindowSize()
 	if sendWindow == 0 {
-		fmt.Println(time.Now(), "no send window at offset", s.writeOffset)
+		// fmt.Println(time.Now(), "no send window at offset", s.writeOffset)
 		if isBlocked, offset := s.flowController.IsNewlyBlocked(); isBlocked {
 			s.sender.queueControlFrame(&wire.StreamDataBlockedFrame{
 				StreamID:          s.streamID,
@@ -444,7 +453,7 @@ func (s *sendStream) cancelWriteImpl(errorCode protocol.ApplicationErrorCode, wr
 }
 
 func (s *sendStream) handleMaxStreamDataFrame(frame *wire.MaxStreamDataFrame) {
-	fmt.Println(time.Now(), "received MAX_STREAM_DATA", frame.MaximumStreamData)
+	// fmt.Println(time.Now(), "received MAX_STREAM_DATA", frame.MaximumStreamData)
 	s.mutex.Lock()
 	hasStreamData := s.dataForWriting != nil || s.nextFrame != nil
 	s.mutex.Unlock()

@@ -4,6 +4,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/lucas-clemente/quic-go/logging"
+
 	"github.com/lucas-clemente/quic-go/internal/ackhandler"
 	"github.com/lucas-clemente/quic-go/internal/flowcontrol"
 	"github.com/lucas-clemente/quic-go/internal/protocol"
@@ -89,6 +91,7 @@ var _ StreamError = &streamCanceledError{}
 func newStream(streamID protocol.StreamID,
 	sender streamSender,
 	flowController flowcontrol.StreamFlowController,
+	tracer logging.ConnectionTracer,
 	version protocol.VersionNumber,
 ) *stream {
 	s := &stream{sender: sender, version: version}
@@ -101,7 +104,7 @@ func newStream(streamID protocol.StreamID,
 			s.completedMutex.Unlock()
 		},
 	}
-	s.sendStream = *newSendStream(streamID, senderForSendStream, flowController, version)
+	s.sendStream = *newSendStream(streamID, senderForSendStream, flowController, tracer, version)
 	senderForReceiveStream := &uniStreamSender{
 		streamSender: sender,
 		onStreamCompletedImpl: func() {
