@@ -298,6 +298,9 @@ type Config struct {
 	// DisablePathMTUDiscovery disables Path MTU Discovery (RFC 8899).
 	// Packets will then be at most 1252 (IPv4) / 1232 (IPv6) bytes in size.
 	DisablePathMTUDiscovery bool
+	// DisableQUICBitGreasing disables greasing of the QUIC bit.
+	// By default, greasing is enabled according to https://datatracker.ietf.org/doc/draft-ietf-quic-bit-grease/00/.
+	DisableQUICBitGreasing bool
 	// See https://datatracker.ietf.org/doc/draft-ietf-quic-datagram/.
 	// Datagrams will only be available when both peers enable datagram support.
 	EnableDatagrams bool

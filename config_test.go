@@ -77,6 +77,8 @@ var _ = Describe("Config", func() {
 				f.Set(reflect.ValueOf(true))
 			case "DisablePathMTUDiscovery":
 				f.Set(reflect.ValueOf(true))
+			case "DisableQUICBitGreasing":
+				f.Set(reflect.ValueOf(true))
 			case "Tracer":
 				f.Set(reflect.ValueOf(mocklogging.NewMockTracer(mockCtrl)))
 			default:
@@ -153,6 +155,7 @@ var _ = Describe("Config", func() {
 			Expect(c.MaxIncomingStreams).To(BeEquivalentTo(protocol.DefaultMaxIncomingStreams))
 			Expect(c.MaxIncomingUniStreams).To(BeEquivalentTo(protocol.DefaultMaxIncomingUniStreams))
 			Expect(c.DisablePathMTUDiscovery).To(BeFalse())
+			Expect(c.DisableQUICBitGreasing).To(BeFalse())
 		})
 
 		It("populates empty fields with default values, for the server", func() {
