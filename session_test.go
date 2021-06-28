@@ -570,7 +570,7 @@ var _ = Describe("Session", func() {
 				Header:          wire.Header{DestConnectionID: srcConnID},
 				PacketNumberLen: protocol.PacketNumberLen2,
 			}
-			Expect(hdr.Write(buf, sess.version)).To(Succeed())
+			Expect(hdr.Write(buf, true, sess.version)).To(Succeed())
 			unpacker.EXPECT().Unpack(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(*wire.Header, time.Time, []byte) (*unpackedPacket, error) {
 				buf := &bytes.Buffer{}
 				Expect((&wire.ConnectionCloseFrame{ErrorCode: uint64(qerr.StreamLimitError)}).Write(buf, sess.version)).To(Succeed())
@@ -652,7 +652,7 @@ var _ = Describe("Session", func() {
 
 		getPacket := func(extHdr *wire.ExtendedHeader, data []byte) *receivedPacket {
 			buf := &bytes.Buffer{}
-			Expect(extHdr.Write(buf, sess.version)).To(Succeed())
+			Expect(extHdr.Write(buf, true, sess.version)).To(Succeed())
 			return &receivedPacket{
 				data:    append(buf.Bytes(), data...),
 				buffer:  getPacketBuffer(),
@@ -2427,7 +2427,7 @@ var _ = Describe("Client Session", func() {
 
 	getPacket := func(hdr *wire.ExtendedHeader, data []byte) *receivedPacket {
 		buf := &bytes.Buffer{}
-		Expect(hdr.Write(buf, sess.version)).To(Succeed())
+		Expect(hdr.Write(buf, true, sess.version)).To(Succeed())
 		return &receivedPacket{
 			data:   append(buf.Bytes(), data...),
 			buffer: getPacketBuffer(),
@@ -2689,7 +2689,7 @@ var _ = Describe("Client Session", func() {
 
 		getRetryTag := func(hdr *wire.ExtendedHeader) []byte {
 			buf := &bytes.Buffer{}
-			hdr.Write(buf, sess.version)
+			hdr.Write(buf, true, sess.version)
 			return handshake.GetRetryIntegrityTag(buf.Bytes(), origDestConnID, hdr.Version)[:]
 		}
 
@@ -2903,7 +2903,7 @@ var _ = Describe("Client Session", func() {
 
 		getPacket := func(extHdr *wire.ExtendedHeader, data []byte) *receivedPacket {
 			buf := &bytes.Buffer{}
-			Expect(extHdr.Write(buf, sess.version)).To(Succeed())
+			Expect(extHdr.Write(buf, true, sess.version)).To(Succeed())
 			return &receivedPacket{
 				data:   append(buf.Bytes(), data...),
 				buffer: getPacketBuffer(),
