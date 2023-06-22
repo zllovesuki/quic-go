@@ -59,6 +59,10 @@ func maybeSetGSO(rawConn syscall.RawConn) bool {
 		log.Println("failed to enable GSO")
 		return false
 	}
+	rawConn.Control(func(fd uintptr) {
+		val, err := unix.GetsockoptInt(int(fd), syscall.IPPROTO_UDP, UDP_SEGMENT)
+		log.Printf("!! DEBUG !! GetsockoptInt: %+v, err: %+v\n", val, err)
+	})
 	return true
 }
 
