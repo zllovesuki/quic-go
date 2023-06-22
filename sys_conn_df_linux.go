@@ -55,6 +55,7 @@ func maybeSetGSO(rawConn syscall.RawConn) bool {
 	}); err != nil {
 		setErr = err
 	}
+	log.Printf("!! DEBUG !! setErr: %+v\n", setErr)
 	if setErr != nil {
 		log.Println("failed to enable GSO")
 		return false
