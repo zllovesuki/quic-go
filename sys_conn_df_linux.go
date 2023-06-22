@@ -51,7 +51,7 @@ func maybeSetGSO(rawConn syscall.RawConn) bool {
 
 	var setErr error
 	if err := rawConn.Control(func(fd uintptr) {
-		setErr = unix.SetsockoptInt(int(fd), syscall.IPPROTO_UDP, UDP_SEGMENT, 1)
+		setErr = unix.SetsockoptInt(int(fd), syscall.IPPROTO_UDP, UDP_SEGMENT, 1280)
 	}); err != nil {
 		setErr = err
 	}
