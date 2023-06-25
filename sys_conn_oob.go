@@ -241,12 +241,24 @@ func (c *oobConn) WriteTo(p []byte, addr net.Addr) (int, error) {
 // Callers are advised to make sure that oob has a sufficient capacity,
 // such that appending the UDP_SEGMENT size message doesn't cause an allocation.
 func (c *oobConn) WritePacket(b []byte, packetSize uint16, addr net.Addr, oob []byte) (n int, err error) {
+	var gsoOOB []byte
+RETRY:
 	if c.cap.GSO {
-		oob = appendUDPSegmentSizeMsg(oob, packetSize)
+		oobCloned := make([]byte, len(oob))
+		copy(oobCloned, oob)
+		gsoOOB = appendUDPSegmentSizeMsg(oobCloned, packetSize)
 	} else if uint16(len(b)) != packetSize {
 		panic(fmt.Sprintf("inconsistent length. got: %d. expected %d", packetSize, len(b)))
 	}
-	n, _, err = c.OOBCapablePacketConn.WriteMsgUDP(b, oob, addr.(*net.UDPAddr))
+	if c.cap.GSO {
+		n, _, err = c.OOBCapablePacketConn.WriteMsgUDP(b, gsoOOB, addr.(*net.UDPAddr))
+	} else {
+		n, _, err = c.OOBCapablePacketConn.WriteMsgUDP(b, oob, addr.(*net.UDPAddr))
+	}
+	if err != nil && c.cap.GSO && errShouldDisableUDPGSO(err) {
+		c.cap.GSO = false
+		goto RETRY
+	}
 	return n, err
 }
 
