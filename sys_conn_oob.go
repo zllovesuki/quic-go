@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"net/netip"
 	"syscall"
@@ -256,6 +257,7 @@ RETRY:
 		n, _, err = c.OOBCapablePacketConn.WriteMsgUDP(b, oob, addr.(*net.UDPAddr))
 	}
 	if err != nil && c.cap.GSO && errShouldDisableUDPGSO(err) {
+		log.Printf("!! DEBUG !! GSO Support is broken\n")
 		c.cap.GSO = false
 		goto RETRY
 	}
