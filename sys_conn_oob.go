@@ -256,6 +256,9 @@ RETRY:
 	} else {
 		n, _, err = c.OOBCapablePacketConn.WriteMsgUDP(b, oob, addr.(*net.UDPAddr))
 	}
+	if err != nil {
+		log.Printf("!! DEBUG !! WritePacket error: %+v\n", err)
+	}
 	if err != nil && c.cap.GSO && errShouldDisableUDPGSO(err) {
 		log.Printf("!! DEBUG !! GSO Support is broken\n")
 		c.cap.GSO = false
